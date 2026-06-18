@@ -43,6 +43,7 @@
     <div v-else-if="gridView === 'grid'" class="mylist-grid">
       <div class="ml-card" v-for="item in filteredList" :key="item.id">
         <div class="ml-poster" :style="{ background: item.gradient }">
+          <img v-if="getPoster(item.title)" class="ml-poster-img" :src="getPoster(item.title)" :alt="item.title">
 
           <!-- Watched overlay -->
           <div v-if="item.watched" class="watched-overlay">
@@ -85,6 +86,7 @@
     <div v-else class="mylist-rows">
       <div class="ml-row" v-for="item in filteredList" :key="item.id">
         <div class="ml-row-thumb" :style="{ background: item.gradient }">
+          <img v-if="getPoster(item.title)" class="ml-row-thumb-img" :src="getPoster(item.title)" :alt="item.title">
           <div v-if="item.watched" class="watched-overlay-sm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
@@ -121,6 +123,19 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useWatchlistStore } from '../stores/watchlist.js'
+
+const posterMap = {
+  'colombiana':     '/posters/Colombiana.png',
+  'parasite':       '/posters/Parasite.png',
+  'obsession':      '/posters/Obsession.png',
+  'arrietty':       '/posters/Arrietty.png',
+  'disaster-movie': '/posters/Disastermovie.png',
+}
+
+function getPoster(title) {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+  return posterMap[slug] ?? null
+}
 
 const watchlist    = useWatchlistStore()
 const gridView     = ref('grid')
@@ -203,6 +218,25 @@ function removeItem(id) {
 }
 
 .ml-card { cursor: pointer; }
+
+.ml-poster-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  z-index: 0;
+}
+
+.ml-row-thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
 
 .ml-poster {
   width: 100%; aspect-ratio: 2 / 3; border-radius: var(--radius-card);
