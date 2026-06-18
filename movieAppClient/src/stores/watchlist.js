@@ -12,18 +12,37 @@ const INITIAL = [
   { id:'ml8', title:'The Council',           type:'series', genre:'Political', year:2023, rating:'8.9', progress:100, watched:true,  newEpisode:false, gradient:'linear-gradient(175deg,#0a1220,#0e1830,#050810)' },
 ]
 
+const STORAGE_KEY = 'reelz_watchlist'
+
+function load() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved ? JSON.parse(saved) : [...INITIAL]
+  } catch {
+    return [...INITIAL]
+  }
+}
+
+function save(items) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+}
+
 export const useWatchlistStore = defineStore('watchlist', () => {
-  const items = ref([...INITIAL])
+  const items = ref(load())
 
   function add(item) {
-    if (items.value.find(i => i.id === item.id)) return false // already saved
+    if (items.value.find(i => i.id === item.id)) return false
     items.value.unshift({ ...item, watched: false, progress: 0, newEpisode: false })
+    save(items.value)
     return true
   }
 
   function remove(id) {
     const idx = items.value.findIndex(i => i.id === id)
-    if (idx !== -1) items.value.splice(idx, 1)
+    if (idx !== -1) {
+      items.value.splice(idx, 1)
+      save(items.value)
+    }
   }
 
   function has(id) {
@@ -35,6 +54,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     if (item) {
       item.progress = Math.min(100, Math.max(0, pct))
       item.watched  = item.progress >= 95
+      save(items.value)
     }
   }
 

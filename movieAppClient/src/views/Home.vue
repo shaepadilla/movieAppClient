@@ -16,9 +16,11 @@
             <span class="hero-rating">⭐ {{ film.rating }}</span>
             <span class="meta-sep">·</span>
             <span>{{ film.year }}</span>
-            <span class="meta-sep">·</span>
-            <span>{{ film.duration }}</span>
-            <span class="quality-tag">{{ film.quality }}</span>
+            <template v-if="film.duration">
+              <span class="meta-sep">·</span>
+              <span>{{ film.duration }}</span>
+            </template>
+            <span v-if="film.quality" class="quality-tag">{{ film.quality }}</span>
           </div>
 
           <div class="hero-genres">
@@ -32,13 +34,14 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px"><polygon points="5,3 19,12 5,21"/></svg>
               Watch Now
             </button>
-            <button class="btn-mylist">+ My List</button>
+            <button class="btn-mylist" @click="router.push('/my-list')">+ My List</button>
           </div>
         </div>
 
         <!-- Right — poster card -->
         <div class="hero-right">
           <div class="poster-card" :style="{ background: film.posterGradient }">
+            <img v-if="film.poster" class="hero-poster-img" :src="film.poster" :alt="film.title">
             <div class="poster-shine" />
             <p class="poster-title-text">{{ film.title }}</p>
             <p class="poster-year-text">{{ film.year }}</p>
@@ -81,6 +84,7 @@
           :key="m.title"
         >
           <div class="hcard-thumb" :style="{ background: m.gradient }">
+            <img v-if="m.poster" class="hcard-img-cover" :src="m.poster" :alt="m.title">
             <span class="rank-badge">{{ i + 1 }}</span>
             <div class="thumb-overlay">
               <div class="play-circle">
@@ -131,6 +135,7 @@
           :key="m.title"
         >
           <div class="hcard-thumb" :style="{ background: m.gradient }">
+            <img v-if="m.poster" class="hcard-img-cover" :src="m.poster" :alt="m.title">
             <span class="new-badge">NEW</span>
             <div class="thumb-overlay">
               <div class="play-circle">
@@ -208,49 +213,69 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { API } from '../config.js'
 
-/* ── Hero data ───────────────────────────────────────────────── */
-const heroFilms = [
-  {
-    title: 'Dune: Part Three',
-    badge: '🔥 #1 Trending Now',
-    rating: '9.1',
-    year: '2026',
-    duration: '2h 44m',
-    quality: '4K',
-    genres: ['Sci-Fi', 'Adventure', 'Epic'],
-    description: 'Paul Atreides unites with Chani and the Fremen while on a path of revenge against those who destroyed his family. Facing a choice between the love of his life and the fate of the known universe.',
-    backdropGradient: 'linear-gradient(135deg, #07051a 0%, #160e38 45%, #040210 100%)',
-    posterGradient: 'linear-gradient(160deg, #2a1560 0%, #4a20a0 55%, #1a0d50 100%)'
-  },
-  {
-    title: 'The Hollow Earth',
-    badge: '🔥 #2 Trending Now',
-    rating: '8.7',
-    year: '2025',
-    duration: '2h 12m',
-    quality: 'HD',
-    genres: ['Thriller', 'Mystery', 'Sci-Fi'],
-    description: 'An elite team of scientists discovers a hidden entrance to a vast world beneath Antarctica — with consequences that will reshape everything humanity knows about the planet.',
-    backdropGradient: 'linear-gradient(135deg, #060c16 0%, #0c1828 45%, #030609 100%)',
-    posterGradient: 'linear-gradient(160deg, #0d1a38 0%, #1a2e58 55%, #080f20 100%)'
-  },
-  {
-    title: 'Eternal Run',
-    badge: '🔥 #3 Trending Now',
-    rating: '8.4',
-    year: '2026',
-    duration: '2h 05m',
-    quality: '4K',
-    genres: ['Action', 'Thriller', 'Fantasy'],
-    description: 'When a competitive runner discovers she can pause time, she must master her impossible gift before a global conspiracy reaches the point of no return.',
-    backdropGradient: 'linear-gradient(135deg, #180806 0%, #2e1208 45%, #0e0504 100%)',
-    posterGradient: 'linear-gradient(160deg, #3a1008 0%, #6a2010 55%, #280a06 100%)'
-  }
+const router = useRouter()
+
+/* ── API state ───────────────────────────────────────────────── */
+const apiMovies = ref([])
+
+/* ── Gradient palettes ───────────────────────────────────────── */
+const heroPalette = [
+  { bg: 'linear-gradient(135deg,#07051a,#160e38,#040210)', poster: 'linear-gradient(160deg,#2a1560,#4a20a0,#1a0d50)' },
+  { bg: 'linear-gradient(135deg,#060c16,#0c1828,#030609)', poster: 'linear-gradient(160deg,#0d1a38,#1a2e58,#080f20)' },
+  { bg: 'linear-gradient(135deg,#180806,#2e1208,#0e0504)', poster: 'linear-gradient(160deg,#3a1008,#6a2010,#280a06)' },
 ]
 
+const cardPalette = [
+  'linear-gradient(145deg,#0d1c32,#1a3050)',
+  'linear-gradient(145deg,#0d2a1a,#1a3a28)',
+  'linear-gradient(145deg,#2a0e0e,#3c1812)',
+  'linear-gradient(145deg,#1a0d2a,#2c1a3c)',
+  'linear-gradient(145deg,#0d1a3c,#182840)',
+  'linear-gradient(145deg,#0d0d0e,#1a0d12)',
+  'linear-gradient(145deg,#1c1608,#2c2212)',
+  'linear-gradient(145deg,#0c0a28,#181040)',
+  'linear-gradient(145deg,#08101e,#101830)',
+  'linear-gradient(145deg,#1c1208,#2c1e10)',
+]
+
+/* ── Poster map (keep in sync with Movies.vue) ──────────────── */
+const posterMap = {
+  'colombiana':     '/posters/Colombiana.png',
+  'parasite':       '/posters/Parasite.png',
+  'obsession':      '/posters/Obsession.png',
+  'arrietty':       '/posters/Arrietty.png',
+  'disaster-movie': '/posters/Disastermovie.png',
+}
+
+function getPoster(title) {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+  return posterMap[slug] ?? null
+}
+
+/* ── Hero carousel (first 3 API movies) ─────────────────────── */
+const heroFilms = computed(() =>
+  apiMovies.value.slice(0, 3).map((m, i) => {
+    const p = heroPalette[i % heroPalette.length]
+    return {
+      title: m.title,
+      badge: `🔥 #${i + 1} Trending Now`,
+      rating: m.rating ?? '—',
+      year: String(m.year),
+      genres: [m.genre].filter(Boolean),
+      description: m.description,
+      backdropGradient: p.bg,
+      posterGradient: p.poster,
+      poster: getPoster(m.title)
+    }
+  })
+)
+
 const heroIdx = ref(0)
-const film = computed(() => heroFilms[heroIdx.value])
+const film = computed(() => heroFilms.value[heroIdx.value] ?? {})
 
 let timer
 function jumpTo(i) {
@@ -259,46 +284,70 @@ function jumpTo(i) {
   timer = setInterval(advance, 6000)
 }
 function advance() {
-  heroIdx.value = (heroIdx.value + 1) % heroFilms.length
+  if (!heroFilms.value.length) return
+  heroIdx.value = (heroIdx.value + 1) % heroFilms.value.length
 }
-
-onMounted(() => { timer = setInterval(advance, 6000) })
-onUnmounted(() => clearInterval(timer))
 
 /* ── Genre filter ────────────────────────────────────────────── */
 const genres = ['All', 'Action', 'Sci-Fi', 'Drama', 'Thriller', 'Comedy', 'Horror', 'Romance', 'Animation']
 const activeGenre = ref('All')
 
-/* ── Section data ────────────────────────────────────────────── */
-const topPicks = [
-  { title: 'Arrival II',   genre: 'Sci-Fi',   year: '2025', rating: '8.9', gradient: 'linear-gradient(145deg,#0d1c32,#1a3050)' },
-  { title: 'Wildlands',    genre: 'Drama',    year: '2026', rating: '8.3', gradient: 'linear-gradient(145deg,#0d2a1a,#1a3a28)' },
-  { title: 'Iron War',     genre: 'Action',   year: '2026', rating: '7.8', gradient: 'linear-gradient(145deg,#2a0e0e,#3c1812)' },
-  { title: 'The Phantom',  genre: 'Thriller', year: '2025', rating: '8.1', gradient: 'linear-gradient(145deg,#1a0d2a,#2c1a3c)' },
-  { title: 'Nova Rising',  genre: 'Sci-Fi',   year: '2025', rating: '7.6', gradient: 'linear-gradient(145deg,#0d1a3c,#182840)' },
-  { title: 'Dark Hours',   genre: 'Horror',   year: '2026', rating: '7.9', gradient: 'linear-gradient(145deg,#0d0d0e,#1a0d12)' }
-]
+/* ── Top Picks — first 6 from API ───────────────────────────── */
+const topPicks = computed(() =>
+  apiMovies.value.slice(0, 6).map((m, i) => ({
+    title: m.title,
+    genre: m.genre,
+    year: String(m.year),
+    rating: m.rating ?? '—',
+    gradient: cardPalette[i % cardPalette.length],
+    poster: getPoster(m.title)
+  }))
+)
 
+/* ── New Releases — 4 most recent by year ───────────────────── */
+const newReleases = computed(() =>
+  [...apiMovies.value]
+    .sort((a, b) => b.year - a.year)
+    .slice(0, 4)
+    .map((m, i) => ({
+      title: m.title,
+      genre: m.genre,
+      year: String(m.year),
+      gradient: cardPalette[(i + 4) % cardPalette.length],
+      poster: getPoster(m.title)
+    }))
+)
+
+/* ── Static sections (personal/recommendation state) ────────── */
 const continueWatching = [
-  { title: 'Oppenheimer',   subtitle: '78% watched',          progress: 78, gradient: 'linear-gradient(145deg,#1c1608,#2c2212)' },
-  { title: 'The Bear (S3)', subtitle: 'Episode 4 · 45%',      progress: 45, gradient: 'linear-gradient(145deg,#0a1520,#14202e)' },
-  { title: 'Interstellar',  subtitle: '22% watched',          progress: 22, gradient: 'linear-gradient(145deg,#080c1e,#101838)' }
-]
-
-const newReleases = [
-  { title: 'Neon City',    genre: 'Cyberpunk',      year: '2026', gradient: 'linear-gradient(145deg,#0c0a28,#181040)' },
-  { title: 'Last Orbit',   genre: 'Space drama',    year: '2026', gradient: 'linear-gradient(145deg,#08101e,#101830)' },
-  { title: 'The Verdict',  genre: 'Legal thriller', year: '2026', gradient: 'linear-gradient(145deg,#1c1208,#2c1e10)' },
-  { title: 'Sun Dogs',     genre: 'Indie drama',    year: '2026', gradient: 'linear-gradient(145deg,#1a1408,#26200e)' }
+  { title: 'Oppenheimer',   subtitle: '78% watched',     progress: 78, gradient: 'linear-gradient(145deg,#1c1608,#2c2212)' },
+  { title: 'The Bear (S3)', subtitle: 'Episode 4 · 45%', progress: 45, gradient: 'linear-gradient(145deg,#0a1520,#14202e)' },
+  { title: 'Interstellar',  subtitle: '22% watched',     progress: 22, gradient: 'linear-gradient(145deg,#080c1e,#101838)' }
 ]
 
 const scifiPicks = [
-  { title: 'Arrival II',      genre: 'Sci-Fi',     year: '2025', rating: '8.9', gradient: 'linear-gradient(145deg,#0d1c32,#1a3050)' },
-  { title: 'Gravity Returns', genre: 'Sci-Fi',     year: '2025', rating: '8.2', gradient: 'linear-gradient(145deg,#080e1e,#101a38)' },
-  { title: 'The Martian II',  genre: 'Sci-Fi',     year: '2026', rating: '8.5', gradient: 'linear-gradient(145deg,#1e0c0c,#300e10)' },
-  { title: 'Cosmos',          genre: 'Space drama', year: '2025', rating: '7.8', gradient: 'linear-gradient(145deg,#060610,#0e0e22)' },
-  { title: 'Event Horizon II', genre: 'Sci-Fi',    year: '2026', rating: '7.6', gradient: 'linear-gradient(145deg,#0e080a,#200e12)' }
+  { title: 'Arrival II',       genre: 'Sci-Fi',      year: '2025', rating: '8.9', gradient: 'linear-gradient(145deg,#0d1c32,#1a3050)' },
+  { title: 'Gravity Returns',  genre: 'Sci-Fi',      year: '2025', rating: '8.2', gradient: 'linear-gradient(145deg,#080e1e,#101a38)' },
+  { title: 'The Martian II',   genre: 'Sci-Fi',      year: '2026', rating: '8.5', gradient: 'linear-gradient(145deg,#1e0c0c,#300e10)' },
+  { title: 'Cosmos',           genre: 'Space drama', year: '2025', rating: '7.8', gradient: 'linear-gradient(145deg,#060610,#0e0e22)' },
+  { title: 'Event Horizon II', genre: 'Sci-Fi',      year: '2026', rating: '7.6', gradient: 'linear-gradient(145deg,#0e080a,#200e12)' }
 ]
+
+/* ── Fetch ───────────────────────────────────────────────────── */
+async function fetchMovies() {
+  try {
+    const res = await axios.get(`${API}/movies/getMovies`)
+    apiMovies.value = res.data.movies || res.data || []
+  } catch {
+    apiMovies.value = []
+  }
+}
+
+onMounted(() => {
+  fetchMovies()
+  timer = setInterval(advance, 6000)
+})
+onUnmounted(() => clearInterval(timer))
 </script>
 
 <style scoped>
@@ -479,6 +528,16 @@ const scifiPicks = [
   transition: background 0.8s ease;
 }
 
+.hero-poster-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  z-index: 0;
+}
+
 .poster-shine {
   position: absolute;
   top: -40%;
@@ -487,7 +546,10 @@ const scifiPicks = [
   height: 80%;
   background: radial-gradient(ellipse, rgba(255,255,255,0.08) 0%, transparent 70%);
   pointer-events: none;
+  z-index: 1;
 }
+
+.poster-title-text, .poster-year-text { z-index: 1; position: relative; }
 
 .poster-title-text {
   font-size: 13px;
@@ -612,6 +674,16 @@ const scifiPicks = [
   cursor: pointer;
 }
 
+.hcard-img-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  z-index: 0;
+}
+
 .hcard-thumb {
   position: relative;
   width: 100%;
@@ -622,6 +694,7 @@ const scifiPicks = [
 
 .rank-badge {
   position: absolute;
+  z-index: 1;
   top: 8px;
   left: 8px;
   background: rgba(0,0,0,0.75);
@@ -636,6 +709,7 @@ const scifiPicks = [
 
 .new-badge {
   position: absolute;
+  z-index: 1;
   top: 8px;
   right: 8px;
   background: var(--accent-red);
@@ -653,6 +727,7 @@ const scifiPicks = [
 .thumb-overlay {
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: rgba(0,0,0,0.45);
   display: flex;
   align-items: center;

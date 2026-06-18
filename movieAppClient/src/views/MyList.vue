@@ -5,7 +5,7 @@
     <div class="mylist-header">
       <div>
         <h1 class="page-heading">My List</h1>
-        <p class="page-subheading">{{ myList.length }} title{{ myList.length !== 1 ? 's' : '' }} saved</p>
+        <p class="page-subheading">{{ watchlist.count }} title{{ watchlist.count !== 1 ? 's' : '' }} saved</p>
       </div>
       <div class="view-toggle">
         <button class="view-btn" :class="{ active: gridView === 'grid' }" @click="gridView = 'grid'" title="Grid view">
@@ -31,8 +31,8 @@
       <svg class="empty-icon" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
       </svg>
-      <h2 class="empty-title">{{ myList.length === 0 ? 'Nothing saved yet' : 'No matches found' }}</h2>
-      <p class="empty-body">{{ myList.length === 0 ? 'Add movies and shows to your list to watch them later.' : 'Try a different filter.' }}</p>
+      <h2 class="empty-title">{{ watchlist.count === 0 ? 'Nothing saved yet' : 'No matches found' }}</h2>
+      <p class="empty-body">{{ watchlist.count === 0 ? 'Add movies and shows to your list to watch them later.' : 'Try a different filter.' }}</p>
       <router-link to="/movies" class="btn-browse">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
         Browse Content
@@ -119,9 +119,11 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed } from 'vue'
+import { useWatchlistStore } from '../stores/watchlist.js'
 
-const gridView    = ref('grid')
+const watchlist    = useWatchlistStore()
+const gridView     = ref('grid')
 const activeFilter = ref('all')
 
 const filterOptions = [
@@ -132,29 +134,18 @@ const filterOptions = [
   { label: 'Unwatched', value: 'unwatched' },
 ]
 
-const myList = reactive([
-  { id:'ml1', title:"Dune: Part Three",          type:'movie',  genre:'Sci-Fi',    year:2026, rating:'9.1', progress:0,   watched:false, newEpisode:false, gradient:'linear-gradient(175deg,#14093a,#2e1560,#08041a)' },
-  { id:'ml2', title:'Interstellar',               type:'movie',  genre:'Sci-Fi',    year:2014, rating:'8.6', progress:22,  watched:false, newEpisode:false, gradient:'linear-gradient(175deg,#080c1e,#101838,#040810)' },
-  { id:'ml3', title:'Wildlands',                  type:'movie',  genre:'Drama',     year:2026, rating:'8.3', progress:0,   watched:false, newEpisode:false, gradient:'linear-gradient(175deg,#0c2814,#163820,#070f09)' },
-  { id:'ml4', title:'The Syndicate (S1–S5)',       type:'series', genre:'Crime',     year:2021, rating:'9.0', progress:100, watched:true,  newEpisode:false, gradient:'linear-gradient(175deg,#0c0e12,#141618,#060708)' },
-  { id:'ml5', title:'Arrival II',                 type:'movie',  genre:'Sci-Fi',    year:2025, rating:'8.9', progress:0,   watched:false, newEpisode:false, gradient:'linear-gradient(175deg,#0d1c32,#1a3050,#08100a)' },
-  { id:'ml6', title:'Blackwood (S2)',             type:'series', genre:'Horror',    year:2025, rating:'8.7', progress:0,   watched:false, newEpisode:true,  gradient:'linear-gradient(175deg,#120606,#200808,#090404)' },
-  { id:'ml7', title:"Gravity's Edge",             type:'movie',  genre:'Sci-Fi',    year:2024, rating:'8.5', progress:100, watched:true,  newEpisode:false, gradient:'linear-gradient(175deg,#0a0c22,#121530,#05060e)' },
-  { id:'ml8', title:'The Council',                type:'series', genre:'Political', year:2023, rating:'8.9', progress:100, watched:true,  newEpisode:false, gradient:'linear-gradient(175deg,#0a1220,#0e1830,#050810)' },
-])
-
 const filteredList = computed(() => {
-  if (activeFilter.value === 'all')       return myList
-  if (activeFilter.value === 'movie')     return myList.filter(i => i.type === 'movie')
-  if (activeFilter.value === 'series')    return myList.filter(i => i.type === 'series')
-  if (activeFilter.value === 'watched')   return myList.filter(i => i.watched)
-  if (activeFilter.value === 'unwatched') return myList.filter(i => !i.watched)
-  return myList
+  const list = watchlist.items
+  if (activeFilter.value === 'all')       return list
+  if (activeFilter.value === 'movie')     return list.filter(i => i.type === 'movie')
+  if (activeFilter.value === 'series')    return list.filter(i => i.type === 'series')
+  if (activeFilter.value === 'watched')   return list.filter(i => i.watched)
+  if (activeFilter.value === 'unwatched') return list.filter(i => !i.watched)
+  return list
 })
 
 function removeItem(id) {
-  const idx = myList.findIndex(i => i.id === id)
-  if (idx !== -1) myList.splice(idx, 1)
+  watchlist.remove(id)
 }
 </script>
 

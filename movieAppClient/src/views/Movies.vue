@@ -146,6 +146,7 @@
           <!-- Poster image -->
           <div class="poster-wrap" :class="{ 'poster-wrap-list': gridView === 'list' }">
             <div class="poster-img" :style="{ background: film.gradient }">
+              <img v-if="film.poster" class="poster-img-cover" :src="film.poster" :alt="film.title">
               <!-- Hover overlay -->
               <div class="poster-overlay">
                 <component
@@ -155,7 +156,9 @@
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
                 </component>
-                <button class="mylist-overlay">+ My List</button>
+                <button class="mylist-overlay" @click.prevent="addToList(film)">
+                  {{ watchlist.has(film._id) ? '✓ In My List' : '+ My List' }}
+                </button>
                 <!-- Admin actions on overlay -->
                 <div v-if="auth.isAdmin && film._id" class="admin-card-actions">
                   <router-link :to="`/movies/${film._id}/edit`" class="card-admin-btn update">Update</router-link>
@@ -189,7 +192,9 @@
                 v-bind="film._id ? { to: `/movies/${film._id}` } : {}"
                 class="btn btn-primary btn-sm"
               >▶ Watch</component>
-              <button class="btn btn-secondary btn-sm">+ My List</button>
+              <button class="btn btn-secondary btn-sm" @click="addToList(film)">
+                {{ watchlist.has(film._id) ? '✓ In My List' : '+ My List' }}
+              </button>
               <template v-if="auth.isAdmin && film._id">
                 <router-link :to="`/movies/${film._id}/edit`" class="btn btn-warning btn-sm">Update</router-link>
                 <button class="btn btn-danger btn-sm" @click="deleteMovie(film._id)">Delete</button>
@@ -218,6 +223,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { auth } from '../store/auth.js'
 import { API } from '../config.js'
+import { useWatchlistStore } from '../stores/watchlist.js'
+import { useToast } from '../composables/useToast.js'
+
+const watchlist = useWatchlistStore()
+const { success, info } = useToast()
 
 /* ── State ───────────────────────────────────────────────────── */
 const apiMovies = ref([])
@@ -254,30 +264,6 @@ const activePills = computed(() => {
 function clearFilter(key) { filters[key] = '' }
 function clearAll() { filters.genre = ''; filters.year = ''; filters.rating = '' }
 
-/* ── Static fallback films ───────────────────────────────────── */
-const staticFilms = [
-  { id: 's1',  title: 'Dune: Part Three',  genre: 'Sci-Fi',   year: 2026, rating: 9.1, gradient: 'linear-gradient(175deg,#14093a 0%,#2e1560 55%,#08041a 100%)' },
-  { id: 's2',  title: 'Eternal Run',       genre: 'Action',   year: 2026, rating: 8.4, gradient: 'linear-gradient(175deg,#3a0e0e 0%,#5e1812 55%,#1c0808 100%)' },
-  { id: 's3',  title: 'The Hollow Earth',  genre: 'Thriller', year: 2025, rating: 8.7, gradient: 'linear-gradient(175deg,#0c1428 0%,#162242 55%,#07090f 100%)' },
-  { id: 's4',  title: 'Wildlands',         genre: 'Drama',    year: 2026, rating: 8.3, gradient: 'linear-gradient(175deg,#0c2814 0%,#163820 55%,#070f09 100%)' },
-  { id: 's5',  title: 'Iron War',          genre: 'Action',   year: 2026, rating: 7.8, gradient: 'linear-gradient(175deg,#281408 0%,#3c1e0c 55%,#100a04 100%)' },
-  { id: 's6',  title: 'Neon City',         genre: 'Sci-Fi',   year: 2026, rating: 7.5, gradient: 'linear-gradient(175deg,#0a0828 0%,#130e40 55%,#05040e 100%)' },
-  { id: 's7',  title: 'Nova Rising',       genre: 'Sci-Fi',   year: 2025, rating: 7.6, gradient: 'linear-gradient(175deg,#0c1830 0%,#142438 55%,#07090f 100%)' },
-  { id: 's8',  title: 'Dark Hours',        genre: 'Horror',   year: 2026, rating: 7.9, gradient: 'linear-gradient(175deg,#0e0808 0%,#1c0c0c 55%,#070404 100%)' },
-  { id: 's9',  title: 'The Phantom',       genre: 'Thriller', year: 2025, rating: 8.1, gradient: 'linear-gradient(175deg,#180e28 0%,#261838 55%,#0c0814 100%)' },
-  { id: 's10', title: 'Sun Dogs',          genre: 'Drama',    year: 2026, rating: 7.4, gradient: 'linear-gradient(175deg,#1e1808 0%,#2a2210 55%,#0e0c04 100%)' },
-  { id: 's11', title: 'Last Orbit',        genre: 'Sci-Fi',   year: 2026, rating: 7.7, gradient: 'linear-gradient(175deg,#08101e 0%,#0e1828 55%,#04070a 100%)' },
-  { id: 's12', title: 'The Verdict',       genre: 'Thriller', year: 2026, rating: 7.3, gradient: 'linear-gradient(175deg,#1e1208 0%,#2a1a0c 55%,#0e0904 100%)' },
-  { id: 's13', title: 'Arrival II',        genre: 'Sci-Fi',   year: 2025, rating: 8.9, gradient: 'linear-gradient(175deg,#0c1c30 0%,#142844 55%,#070d16 100%)' },
-  { id: 's14', title: 'Ember Falls',       genre: 'Romance',  year: 2025, rating: 7.2, gradient: 'linear-gradient(175deg,#280e18 0%,#381428 55%,#100810 100%)' },
-  { id: 's15', title: 'Fracture',          genre: 'Action',   year: 2024, rating: 8.0, gradient: 'linear-gradient(175deg,#1e1008 0%,#2e180c 55%,#0e0806 100%)' },
-  { id: 's16', title: 'Nightwatch',        genre: 'Horror',   year: 2025, rating: 7.6, gradient: 'linear-gradient(175deg,#0e0e10 0%,#16101a 55%,#060608 100%)' },
-  { id: 's17', title: 'The Quiet Ones',    genre: 'Drama',    year: 2025, rating: 8.2, gradient: 'linear-gradient(175deg,#101e10 0%,#182818 55%,#080c08 100%)' },
-  { id: 's18', title: "Gravity's Edge",    genre: 'Sci-Fi',   year: 2024, rating: 8.5, gradient: 'linear-gradient(175deg,#0a0c22 0%,#121530 55%,#05060e 100%)' },
-  { id: 's19', title: 'Red Meridian',      genre: 'Thriller', year: 2026, rating: 7.8, gradient: 'linear-gradient(175deg,#220a0a 0%,#300c0c 55%,#100606 100%)' },
-  { id: 's20', title: 'Cascades',          genre: 'Drama',    year: 2026, rating: 7.1, gradient: 'linear-gradient(175deg,#0a1820 0%,#102030 55%,#05090c 100%)' }
-]
-
 /* Gradient palette for API movies */
 const palette = [
   'linear-gradient(175deg,#14093a,#2e1560,#08041a)',
@@ -292,23 +278,34 @@ const palette = [
   'linear-gradient(175deg,#1e1808,#2a2210,#0e0c04)',
 ]
 
-/* ── Merged film list ────────────────────────────────────────── */
-const allFilms = computed(() => {
-  if (apiMovies.value.length > 0) {
-    return apiMovies.value.map((m, i) => ({
-      id: m._id,
-      _id: m._id,
-      title: m.title,
-      genre: m.genre,
-      year: m.year,
-      rating: m.rating ?? '—',
-      director: m.director,
-      description: m.description,
-      gradient: palette[i % palette.length]
-    }))
-  }
-  return staticFilms
-})
+const posterMap = {
+  'colombiana': '/posters/Colombiana.png',
+  'parasite':   '/posters/Parasite.png',
+  'arrietty': '/posters/Arrietty.png',
+  'disaster-movie': '/posters/Disastermovie.png',
+  'obsession': '/posters/Obsession.png',
+}
+
+function getPoster(title) {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+  return posterMap[slug] ?? null
+}
+
+/* ── Film list from API ───────────────────────────────────────── */
+const allFilms = computed(() =>
+  apiMovies.value.map((m, i) => ({
+    id: m._id,
+    _id: m._id,
+    title: m.title,
+    genre: m.genre,
+    year: m.year,
+    rating: m.rating ?? '—',
+    director: m.director,
+    description: m.description,
+    gradient: palette[i % palette.length],
+    poster: getPoster(m.title)
+  }))
+)
 
 /* ── Filtered + sorted ───────────────────────────────────────── */
 const filteredFilms = computed(() => {
@@ -361,6 +358,19 @@ async function fetchMovies() {
   } finally {
     loading.value = false
   }
+}
+
+function addToList(film) {
+  const added = watchlist.add({
+    id:       film._id,
+    title:    film.title,
+    type:     'movie',
+    genre:    film.genre,
+    year:     film.year,
+    rating:   film.rating,
+    gradient: film.gradient,
+  })
+  added ? success(`"${film.title}" added to My List`) : info(`"${film.title}" is already in your list`)
 }
 
 async function deleteMovie(id) {
@@ -661,6 +671,17 @@ onMounted(fetchMovies)
   overflow: hidden;
   transition: transform 0.2s;
 }
+
+.poster-img-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.poster-overlay, .poster-genre-tag { z-index: 1; }
 
 .poster-card:not(.poster-card-list):hover .poster-img {
   transform: scale(1.02);

@@ -8,7 +8,6 @@
     <ul class="nav-center">
       <li><router-link to="/" exact-active-class="nav-active">Home</router-link></li>
       <li><router-link to="/movies" active-class="nav-active">Movies</router-link></li>
-      <li><router-link to="/series" active-class="nav-active">Series</router-link></li>
       <li><router-link to="/my-list" active-class="nav-active">My List</router-link></li>
     </ul>
 

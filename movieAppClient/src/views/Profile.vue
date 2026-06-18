@@ -29,19 +29,6 @@
     <section class="prefs-section">
       <h3 class="section-heading">Preferences</h3>
 
-      <div class="pref-block">
-        <p class="pref-block-title">Appearance</p>
-
-        <div class="pref-row">
-          <div class="pref-info">
-            <p class="pref-label">Theme</p>
-          </div>
-          <div class="theme-toggle">
-            <button class="theme-pill" :class="{ active: theme === 'dark' }" @click="theme = 'dark'">Dark</button>
-            <button class="theme-pill" :class="{ active: theme === 'light' }" @click="theme = 'light'">Light</button>
-          </div>
-        </div>
-      </div>
 
       <div class="pref-block">
         <p class="pref-block-title">Playback</p>
@@ -169,7 +156,6 @@ import { auth } from '../store/auth.js'
 
 const router = useRouter()
 
-const theme = ref('dark')
 
 const prefs = reactive({
   autoplay: true,
@@ -301,14 +287,6 @@ function signOut() {
 }
 .toggle.on .toggle-knob { transform: translateX(20px); }
 
-/* Theme pill toggle */
-.theme-toggle { display: flex; background: var(--bg-elevated); border: 1px solid var(--border-medium); border-radius: var(--radius-btn); padding: 3px; gap: 2px; }
-.theme-pill {
-  font-size: 13px; font-weight: 500; font-family: inherit;
-  padding: 5px 16px; border-radius: 6px; border: none; cursor: pointer;
-  background: none; color: var(--text-muted); transition: all 0.15s;
-}
-.theme-pill.active { background: var(--accent-red); color: #fff; }
 
 /* Select wrap */
 .select-wrap { position: relative; display: flex; align-items: center; }

@@ -6,7 +6,6 @@ import Movies from '../views/Movies.vue'
 import MovieView from '../views/MovieView.vue'
 import AddMovie from '../views/AddMovie.vue'
 import UpdateMovie from '../views/UpdateMovie.vue'
-import Series from '../views/Series.vue'
 import MyList from '../views/MyList.vue'
 import Search from '../views/Search.vue'
 import Profile from '../views/Profile.vue'
@@ -19,7 +18,6 @@ const routes = [
   { path: '/movies/:id', component: MovieView, meta: { requiresAuth: true } },
   { path: '/addMovie', component: AddMovie, meta: { requiresAdmin: true } },
   { path: '/movies/:id/edit', component: UpdateMovie, meta: { requiresAdmin: true } },
-  { path: '/series', component: Series },
   { path: '/my-list', component: MyList, meta: { requiresAuth: true } },
   { path: '/search', component: Search },
   { path: '/profile', component: Profile, meta: { requiresAuth: true } }
